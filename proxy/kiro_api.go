@@ -214,7 +214,13 @@ func RefreshAccountInfo(account *config.Account) (*config.AccountInfo, error) {
 	if err != nil {
 		// 检测封禁状态
 		errMsg := err.Error()
-		if strings.Contains(errMsg, "TEMPORARILY_SUSPENDED") {
+
+		// FEATURE_NOT_SUPPORTED 不是认证错误，跳过不处理
+		if strings.Contains(errMsg, "FEATURE_NOT_SUPPORTED") {
+			logger.Debugf("[RefreshAccountInfo] GetUsageLimits not supported for %s, skipping", account.Email)
+			// 不 ban 账号，直接返回基本信息
+			return info, nil
+		} else if strings.Contains(errMsg, "TEMPORARILY_SUSPENDED") {
 			// 账户被暂时封禁，自动禁用并标记封禁状态
 			logger.Warnf("[RefreshAccountInfo] Account %s is temporarily suspended: %v", account.Email, err)
 
@@ -231,9 +237,9 @@ func RefreshAccountInfo(account *config.Account) (*config.AccountInfo, error) {
 			}
 
 			return nil, fmt.Errorf("Account suspended: %w", err)
-		} else if strings.Contains(errMsg, "403") || strings.Contains(errMsg, "401") ||
+		} else if strings.Contains(errMsg, "401") ||
 			strings.Contains(errMsg, "invalid") || strings.Contains(errMsg, "expired") {
-			// Token 相关错误，可能需要重新认证
+			// Token 相关错误，可能需要重新认证（排除普通 403）
 			logger.Warnf("[RefreshAccountInfo] Authentication error for %s: %v", account.Email, err)
 
 			// 更新账户封禁状态为认证失败并自动禁用
