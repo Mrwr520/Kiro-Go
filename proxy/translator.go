@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"kiro-go/config"
+	"kiro-go/logger"
 	"regexp"
 	"strings"
 	"time"
@@ -1141,6 +1142,15 @@ func OpenAIToKiro(req *OpenAIRequest, thinking bool) *KiroPayload {
 func extractOpenAIUserContent(content interface{}) (string, []KiroImage) {
 	if s, ok := content.(string); ok {
 		return s, nil
+	}
+
+	// Debug: log the content structure for image troubleshooting
+	if contentJSON, err := json.Marshal(content); err == nil {
+		preview := string(contentJSON)
+		if len(preview) > 500 {
+			preview = preview[:500] + "...(truncated)"
+		}
+		logger.Debugf("[extractOpenAIUserContent] content structure: %s", preview)
 	}
 
 	var text string
